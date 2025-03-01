@@ -6,6 +6,12 @@
 </head>
 <body>
 
+{% if messages %}
+    {% for message in messages %}
+        {{ message }}
+    {% endfor %}
+{% endif %}
+
 <h1>Books</h1>
 {% if books %}
     <ul>

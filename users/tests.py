@@ -92,11 +92,13 @@ class RegistrationTestCase(TestCase):
 
 class LoginTestCase(TestCase):
 
-    def test_successful_login(self):
-        db_user = User.objects.create(username="testuser", first_name="testfirstname")
-        db_user.set_password("user_password")
-        db_user.save()
+    def setUp(self):
+        self.db_user = User.objects.create(username="testuser", first_name="testfirstname")
+        self.db_user.set_password("user_password")
+        self.db_user.save()
 
+
+    def test_successful_login(self):
         self.client.post(
             reverse("users:login"),
             data={
@@ -108,10 +110,6 @@ class LoginTestCase(TestCase):
         self.assertTrue(user.is_authenticated)
 
     def test_wrong_credentials(self):
-        db_user = User.objects.create(username="testuser", first_name="testfirstname")
-        db_user.set_password("user_password")
-        db_user.save()
-
         self.client.post(
             reverse("users:login"),
             data={
@@ -134,3 +132,34 @@ class LoginTestCase(TestCase):
         user = get_user(self.client)
         self.assertFalse(user.is_authenticated)
 
+    def test_successful_logout(self):
+        self.client.login(username="testuser", password="user_password")
+
+        self.client.get(reverse("users:logout"))
+
+        user = get_user(self.client)
+        self.assertFalse(user.is_authenticated)
+
+
+class ProfileTestCase(TestCase):
+
+    def test_login_request(self):
+        response = self.client.get(reverse("users:profile"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("users:login") + "?next=/users/profile/")
+
+    def test_profile_details(self):
+        user = User.objects.create(username="testuser", first_name="testfirstname", last_name="testlastname", email="test@gmail.com")
+        user.set_password("testPassword")
+        user.save()
+
+        self.client.login(username="testuser", password="testPassword")
+
+        response = self.client.get(reverse("users:profile"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, user.username)
+        self.assertContains(response, user.first_name)
+        self.assertContains(response, user.last_name)
+        self.assertContains(response, user.email)
